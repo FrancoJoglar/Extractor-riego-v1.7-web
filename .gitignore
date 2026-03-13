@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# Build/Dist
+build/
+dist/
+*.spec
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Excel outputs
+Planilla_Programacion*.xlsx
+*.xlsx
+
+# Logs
+*.log
+debug_log.txt
+
+# Streamlit
+streamlit_app/.streamlit/secrets.toml
