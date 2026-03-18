@@ -17,8 +17,15 @@ from modules.schedule_logic import generate_schedule
 
 def show():
     """Muestra la página de programar horarios."""
-    st.title("📅 Programar Horarios")
-    st.markdown("Calcula horarios de inicio para los riegos pendientes.")
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 1rem;">
+        <span style="font-size: 2.5rem;">📅</span>
+    </div>
+    <h1 style="text-align: center; color: #2E7D32 !important;">Programar Horarios</h1>
+    <p style="text-align: center; color: #388E3C; font-size: 1.1rem;">
+        Calcula horarios de inicio para los riegos pendientes
+    </p>
+    """, unsafe_allow_html=True)
     
     # Inicializar estado
     if 'schedule_df' not in st.session_state:
@@ -123,14 +130,50 @@ def show():
             # Descarga
             st.markdown("---")
             
-            # Preparar Excel
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                df_with_hours.to_excel(writer, index=False, sheet_name='Programación')
+            # Preparar Excel con estilos
+            import tempfile
+            import os
+            
+            # Seleccionar columnas visibles (ocultar: estado, fecha_creacion, equipo_num, sector_num)
+            # MOSTRAR: Fecha, Equipo, Sector, Jefe, Horas, M3, Fert, Hora Inicio, Tipo
+            columnas_visibles = ['fecha_solicitado', 'equipo_nombre', 'sector_nombre', 
+                                'jefe_campo', 'horas_solicitadas', 'm3_estimados', 
+                                'con_fertilizante', 'Hora Inicio', 'Tipo Programación']
+            
+            df_export = df_with_hours[[c for c in columnas_visibles if c in df_with_hours.columns]].copy()
+            
+            # Renombrar columnas para Excel
+            df_export = df_export.rename(columns={
+                'fecha_solicitado': 'Fecha',
+                'equipo_nombre': 'Equipo',
+                'sector_nombre': 'Sector',
+                'jefe_campo': 'Jefe de Campo',
+                'horas_solicitadas': 'Horas',
+                'm3_estimados': 'M3 Estimados',
+                'con_fertilizante': 'Con Fertilizante',
+                'Hora Inicio': 'Hora Inicio',
+                'Tipo Programación': 'Tipo Programación'
+            })
+            
+            # Crear archivo temporal
+            temp_file = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
+            temp_path = temp_file.name
+            temp_file.close()
+            
+            # Aplicar estilos y guardar
+            from modules.schedule_logic import apply_excel_styles
+            apply_excel_styles(df_export, temp_path)
+            
+            # Leer y devolver
+            with open(temp_path, 'rb') as f:
+                excel_data = f.read()
+            
+            # Limpiar archivo temporal
+            os.unlink(temp_path)
             
             st.download_button(
                 label="📥 Descargar Programación",
-                data=buffer.getvalue(),
+                data=excel_data,
                 file_name=f"programacion_{selected_date}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 type="primary"

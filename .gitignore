@@ -29,5 +29,6 @@ Planilla_Programacion*.xlsx
 *.log
 debug_log.txt
 
-# Streamlit
+# Streamlit - CRITICAL: Never commit secrets!
 streamlit_app/.streamlit/secrets.toml
+streamlit_app/.streamlit/secrets.toml.*

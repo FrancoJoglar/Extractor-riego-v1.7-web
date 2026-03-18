@@ -14,8 +14,15 @@ from modules.supabase_sync import clear_supabase_table
 
 def show():
     """Muestra la página de mantenimiento."""
-    st.title("🔧 Mantenimiento")
-    st.markdown("Herramientas de administración de la base de datos.")
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 1rem;">
+        <span style="font-size: 2.5rem;">⚙️</span>
+    </div>
+    <h1 style="text-align: center; color: #2E7D32 !important;">Mantenimiento</h1>
+    <p style="text-align: center; color: #388E3C; font-size: 1.1rem;">
+        Herramientas de administración de la base de datos
+    </p>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     

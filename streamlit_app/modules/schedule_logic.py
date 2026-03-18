@@ -126,7 +126,11 @@ def get_schedule_data(fecha: str, log_callback=print) -> pd.DataFrame:
         supabase = get_supabase_client()
         log_callback(f"Obteniendo datos para fecha: {fecha}")
         
-        response = supabase.table("vista_riegos_solicitados").select("*").eq("estado", "pendiente").eq("fecha_solicitado", fecha).execute()
+        # Convertir YYYY-MM-DD a DD-MM-YYYY para Supabase
+        fecha_parts = fecha.split('-')
+        fecha_supabase = f"{fecha_parts[2]}-{fecha_parts[1]}-{fecha_parts[0]}"
+        
+        response = supabase.table("vista_riegos_solicitados").select("*").eq("estado", "pendiente").eq("fecha_solicitado", fecha_supabase).execute()
         
         if not response.data:
             log_callback(f"No hay riegos para la fecha {fecha}")
@@ -184,3 +188,126 @@ def generate_schedule(fecha: str, log_callback=print) -> pd.DataFrame:
     df = df.sort_values(by=['equipo_num', 'sector_num'])
     
     return df
+
+
+def apply_excel_styles(df: pd.DataFrame, output_path: str):
+    """
+    Aplica estilos corporativos al Excel exportado.
+    
+    Args:
+        df: DataFrame con los datos
+        output_path: Ruta del archivo Excel de salida
+    """
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    
+    # Guardar DataFrame a Excel
+    df.to_excel(output_path, index=False)
+    
+    wb = openpyxl.load_workbook(output_path)
+    ws = wb.active
+    
+    # ============================================
+    # 1. CONFIGURACIÓN DE COLORES Y ESTILOS
+    # ============================================
+    
+    # Encabezado: Azul #0066CC
+    AZUL_ENCABEZADO = "0066CC"
+    header_fill = PatternFill(start_color=AZUL_ENCABEZADO, end_color=AZUL_ENCABEZADO, fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    
+    # Paleta SIMPLE: solo 2 tonos de azul claro alternados
+    AZUL_1 = "B4D7FF"  # Azul claro
+    AZUL_2 = "D4E5F7"  # Azul muy claro
+    COLORES_EQUIPOS = [AZUL_1, AZUL_2]
+    
+    # Mapear equipos a colores (alternar)
+    # Nota: la columna puede venir como 'equipo_nombre' o 'Equipo' según el origen
+    equipos_col = 'Equipo' if 'Equipo' in df.columns else ('equipo_nombre' if 'equipo_nombre' in df.columns else None)
+    equipos_unicos = df[equipos_col].unique() if equipos_col else []
+    color_por_equipo = {eq: COLORES_EQUIPOS[i % 2] for i, eq in enumerate(sorted(equipos_unicos))}
+    
+    # Fuentes
+    font_dato = Font(name="Calibri", size=11, bold=False)
+    font_importante = Font(name="Calibri", size=14, bold=True)  # Sector, M3
+    font_hora = Font(name="Calibri", size=12, bold=True, color="FF6600")  # Hora Inicio NARANJO
+    
+    # Bordes suaves
+    border_side = Side(color="D3D3D3", style='thin')
+    border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
+    
+    # ============================================
+    # 2. MAPEO DE COLUMNAS
+    # ============================================
+    columnas = {cell.value: idx for idx, cell in enumerate(ws[1])}
+    
+    # Columnas importantes
+    col_sector = columnas.get('Sector', columnas.get('sector_nombre', None))
+    col_m3 = columnas.get('M3 Estimados', columnas.get('m3_estimados', columnas.get('m3', None)))
+    col_hora = columnas.get('Hora Inicio', None)
+    col_equipo = columnas.get('Equipo', columnas.get('equipo_nombre', None))
+    
+    # NOTA: Las columnas ya vienen filtradas desde la página (Fecha, Equipo, Sector, etc.)
+    # No se ocultan columnas aquí
+    
+    # ============================================
+    # 3. APLICAR ESTILOS AL ENCABEZADO
+    # ============================================
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = border
+    
+    # Redondear M3 a entero (estándar: >0.5 hacia arriba, <0.5 hacia abajo)
+    if col_m3 is not None:
+        for row in ws.iter_rows(min_row=2):
+            cell = row[col_m3]
+            if cell.value is not None:
+                try:
+                    cell.value = int(cell.value + 0.5) if cell.value >= 0 else int(cell.value - 0.5)
+                except (ValueError, TypeError):
+                    pass
+    
+    # ============================================
+    # 4. APLICAR ESTILOS A LAS FILAS
+    # ============================================
+    for row in ws.iter_rows(min_row=2):
+        equipo = row[col_equipo].value if col_equipo is not None else None
+        fill_color = color_por_equipo.get(equipo, "FFFFFF")
+        fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
+        
+        for col_idx, cell in enumerate(row):
+            cell.fill = fill
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+            
+            # Hora Inicio en NARANJA + negrita
+            if col_idx == col_hora:
+                cell.font = font_hora
+            # Sector y M3 en negrita
+            elif col_idx in [col_sector, col_m3]:
+                cell.font = font_importante
+            else:
+                cell.font = font_dato
+    
+    # ============================================
+    # 5. AJUSTAR ANCHOS DE COLUMNAS
+    # ============================================
+    anchos = {
+        'A': 16,  # Fecha
+        'B': 12,  # Equipo
+        'C': 10,  # Sector
+        'D': 15,  # Jefe de Campo
+        'E': 8,   # Horas
+        'F': 14,  # M3
+        'G': 18,  # Con Fertilizante
+        'H': 14,  # Hora Inicio
+        'I': 18,  # Tipo Programación
+    }
+    for col_letter, width in anchos.items():
+        if col_letter in ws.column_dimensions:
+            ws.column_dimensions[col_letter].width = width
+    
+    wb.save(output_path)

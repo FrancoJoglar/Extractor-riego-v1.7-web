@@ -18,8 +18,15 @@ from modules.supabase_sync import sync_to_supabase
 
 def show():
     """Muestra la página de extraer riegos."""
-    st.title("📋 Extraer Riegos desde Excel")
-    st.markdown("Sube la planilla M3 reales y extrae los datos de riego.")
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 1rem;">
+        <span style="font-size: 2.5rem;">📋</span>
+    </div>
+    <h1 style="text-align: center; color: #2E7D32 !important;">Extraer Riegos desde Excel</h1>
+    <p style="text-align: center; color: #388E3C; font-size: 1.1rem;">
+        Sube la planilla M3 reales y extrae los datos de riego
+    </p>
+    """, unsafe_allow_html=True)
     
     # Inicializar estado
     if 'extracted_df' not in st.session_state:

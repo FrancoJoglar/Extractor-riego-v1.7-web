@@ -3,11 +3,18 @@
 port = 8501
 headless = true
 
+[browser]
+serverAddress = ""
+
+[client]
+showSidebarNavigation = false
+
 [theme]
-primaryColor = "#1976D2"
-backgroundColor = "#F5F5F5"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#212121"
+primaryColor = "#2E7D32"
+backgroundColor = "#F1F8E9"
+secondaryBackgroundColor = "#E8F5E9"
+textColor = "#1B5E20"
+font = "sans serif"
 
 [runner]
 magicEnabled = true

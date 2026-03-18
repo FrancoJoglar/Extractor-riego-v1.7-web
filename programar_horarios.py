@@ -284,7 +284,9 @@ def guardar_excel(df, output_path):
     # Guardar
     df.to_excel(output_path, index=False)
     
-    # Aplicar estilos
+    # ============================================================
+    # APLICAR ESTILOS A LA PLANILLA DE EXPORTACIÓN
+    # ============================================================
     try:
         import openpyxl
         from openpyxl.styles import PatternFill, Font, Alignment
@@ -294,89 +296,136 @@ def guardar_excel(df, output_path):
         ws = wb.active
         
         # ============================================
-        # ESTILOS SEGÚN PLANTILLA EXCEL
+        # 1. CONFIGURACIÓN DE COLORES Y ESTILOS
         # ============================================
         
-        # Header: Azul #0070C0, texto blanco, negrita, centrado
-        azul_encabezado = "0070C0"
-        header_fill = PatternFill(start_color=azul_encabezado, end_color=azul_encabezado, fill_type="solid")
+        # Encabezado: Azul oscuro #1F4E78, texto blanco, negrita
+        AZUL_ENCABEZADO = "1F4E78"
+        header_fill = PatternFill(start_color=AZUL_ENCABEZADO, end_color=AZUL_ENCABEZADO, fill_type="solid")
         header_font = Font(bold=True, color="FFFFFF", size=11)
         
-        # Colores alternados por equipo
-        color_equipo_1 = "80C1FF"  # Azul más oscuro (Equipo 1, 7, 10, etc.)
-        color_equipo_2 = "B3D9FF"  # Azul más claro (Equipo 13, 16, etc.)
-        colores_equipos = [color_equipo_1, color_equipo_2]
+        # Paleta de colores pastel por equipo (suave y legible)
+        # Cada equipo tendrá un color diferente de esta paleta
+        PALETA_COLORES_EQUIPOS = [
+            "B4D7FF",  # Celeste pastel
+            "D4E5F7",  # Azul muy claro
+            "E8F1F8",  # Gris azulado claro
+            "CCE5FF",  # Azul cielo
+            "E0EACD",  # Verde pastel
+            "F5DEB3",  # Dorado pastel
+            "FFDAC1",  # Durazno
+            "E2D5CF",  # Lila pastel
+            "D7E8D5",  # Verde minta
+            "F0E68C",  # Amarillo khaki
+            "B0E0E6",  # Turquesa pastel
+            "FFB6C1",  # Rosa claro
+            "E6E6FA",  # Lavanda
+            "FFFACD",  # Limón
+            "F5F5DC",  # Beige
+            "C1E1C1",  # Verde té
+            "CFE2F3",  # Azul hielo
+            "FCE5CD",  # Naranja pastel
+            "D9EAD3",  # Verde menta
+            "E8DAEF",  # Púrpura pastel
+            "F3E5AB",  # Crema
+            "CEDBD9",  # Verde grisáceo
+        ]
         
-        # Color naranja para Hora Inicio
-        naranjo = "FF6600"
+        # Crear mapa de colores por equipo
+        equipos_unicos = df['Equipo'].unique() if 'Equipo' in df.columns else []
+        color_por_equipo = {}
+        for i, eq in enumerate(sorted(equipos_unicos)):
+            color_por_equipo[eq] = PALETA_COLORES_EQUIPOS[i % len(PALETA_COLORES_EQUIPOS)]
         
-        # Fuente para datos
+        # Fuentes
         font_dato = Font(name="Calibri", size=11, bold=False)
         font_negrita = Font(name="Calibri", size=11, bold=True)
-        font_importante = Font(name="Calibri", size=14, bold=True)  # Sector, M3, Hora
-        font_hora = Font(name="Calibri", size=14, bold=True, color="FF6600")  # Hora Inicio en NARANJO
-        font_hora = Font(name="Calibri", size=14, bold=True, color=naranjo)  # Hora Inicio en naranja
-        
-        # Anchos de columnas
-        anchos = {
-            'A': 18,  # Fecha Solicitado
-            'B': 11,  # Equipo
-            'C': 8,   # Sector
-            'D': 15,  # Jefe de Campo
-            'E': 7,   # Horas
-            'F': 14,  # M3 Estimados
-            'G': 18,  # Con Fertilizante
-            'H': 13,  # Hora Inicio
-            'I': 19,  # Tipo Programación
-        }
+        font_importante = Font(name="Calibri", size=12, bold=True)  # Sector, M3
+        font_hora = Font(name="Calibri", size=12, bold=True, color="FF6600")  # Hora Inicio en NARANJO
         
         # ============================================
-        # APLICAR ESTILOS
+        # 2. MAPEO DE COLUMNAS
         # ============================================
+        # Mapeo de nombres de columnas a índices (0-based)
+        columnas = {cell.value: idx for idx, cell in enumerate(ws[1])}
         
-        # 1. Encabezado
+        # Columnas que deben estar en NEGRITA
+        col_sector = columnas.get('Sector', None)
+        col_m3 = columnas.get('M3 Estimados', columnas.get('Volumen', None))
+        col_hora = columnas.get('Hora Inicio', columnas.get('Hora de inicio', None))
+        
+        columnas_negrita = {col_sector, col_m3, col_hora}
+        
+        # Columna Equipo para grouping (índice)
+        col_equipo = columnas.get('Equipo', None)
+        
+        # ============================================
+        # 3. APLICAR ESTILOS AL ENCABEZADO
+        # ============================================
         for cell in ws[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
         
-        # 2. Datos - agrupados por equipo
-        equipo_col = 2  # Columna B (Equipo)
+        # ============================================
+        # 4. APLICAR ESTILOS A LAS FILAS DE DATOS
+        # ============================================
         equipo_actual = None
-        color_idx = 0  # Alterna entre 0 y 1
         
-        for row_idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
-            equipo = row[equipo_col - 1].value
+        for row in ws.iter_rows(min_row=2):
+            # Obtener valor del equipo para esta fila
+            if col_equipo is not None:
+                equipo = row[col_equipo].value
+            else:
+                equipo = None
             
-            # Si cambia el equipo, alternar color
+            # Si cambia el equipo, obtener nuevo color
             if equipo != equipo_actual:
                 equipo_actual = equipo
-                color_idx = (color_idx + 1) % 2
             
-            fill = PatternFill(start_color=colores_equipos[color_idx], end_color=colores_equipos[color_idx], fill_type="solid")
+            # Obtener color para este equipo
+            fill_color = color_por_equipo.get(equipo, "FFFFFF")
+            fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
             
-            # Map column indices to special formatting
-            # 0=Fecha, 1=Equipo, 2=Sector, 3=Jefe, 4=Horas, 5=M3, 6=Fert, 7=Hora, 8=Tipo
+            # Aplicar estilo a cada celda
             for col_idx, cell in enumerate(row):
                 cell.fill = fill
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 
-                # Hora Inicio en NARANJO (columna 7)
-                if col_idx == 7:
+                # Hora Inicio en NARANJO negrita
+                if col_idx == col_hora:
                     cell.font = font_hora
-                # Celdas importantes: Sector (col 2), M3 (col 5), Horas (col 4)
-                elif col_idx in [2, 4, 5]:  # Sector, Horas, M3
+                # Columnas importantes en negrita (Sector, M3)
+                elif col_idx in columnas_negrita and col_idx is not None:
                     cell.font = font_importante
                 else:
                     cell.font = font_dato
         
-        # 3. Ancho de columnas
-        for col_letter, width in anchos.items():
-            ws.column_dimensions[col_letter].width = width
+        # ============================================
+        # 5. AJUSTAR ANCHO DE COLUMNAS
+        # ============================================
+        anchos = {
+            'A': 18,  # Fecha
+            'B': 12,  # Equipo
+            'C': 10,  # Sector
+            'D': 15,  # Jefe de Campo
+            'E': 8,   # Horas
+            'F': 14,  # M3 Estimados
+            'G': 18,  # Con Fertilizante
+            'H': 14,  # Hora Inicio
+            'I': 18,  # Tipo Programación
+        }
         
+        for col_letter, width in anchos.items():
+            if col_letter in ws.column_dimensions:
+                ws.column_dimensions[col_letter].width = width
+        
+        # Guardar
         wb.save(output_path)
-        print("Estilos aplicados - FORMATO PLANTILLA EXCEL")
+        print("Estilos aplicados - FORMATO CORPORATIVO COMPLETO")
+        
     except Exception as e:
+        print(f"Error aplicando estilos: {e}")
         print(f"Error estilos: {e}")
     
     print(f"\nArchivo guardado: {output_path}")
