@@ -7,4 +7,4 @@ echo ================================================
 echo.
 echo Iniciando aplicacion...
 echo.
-streamlit run app.py --server.address localhost --server.port 8501
+streamlit run app.py

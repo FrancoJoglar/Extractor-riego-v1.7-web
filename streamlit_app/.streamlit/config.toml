@@ -1,10 +1,12 @@
 # Streamlit config
 [server]
 port = 8501
-headless = true
+headless = false
+enableCORS = false
+enableXsrfProtection = true
 
 [browser]
-serverAddress = ""
+serverAddress = "localhost"
 
 [client]
 showSidebarNavigation = false
