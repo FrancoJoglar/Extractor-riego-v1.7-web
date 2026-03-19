@@ -1,6 +1,7 @@
-# Riego Extractor v1.5 - Dependencias
+# Riego Extractor v1.7 - Dependencias
 # Instalación: pip install -r requirements.txt
 
+streamlit>=1.28.0
 pandas>=2.0.0
 supabase>=2.0.0
 openpyxl>=3.1.0
