@@ -30,8 +30,8 @@ echo.
 echo [3/4] Instalando requerimientos...
 echo.
 
-echo       - Esperando que Streamlit este disponible...
-pip install streamlit pandas openpyxl supabase streamlit-extras --quiet
+echo       - Instalando paquetes (puede tardar varios minutos en Python 3.14)...
+pip install streamlit pandas openpyxl supabase streamlit-extras
 if errorlevel 1 (
     echo ERROR: Fallo la instalacion de paquetes
     pause
