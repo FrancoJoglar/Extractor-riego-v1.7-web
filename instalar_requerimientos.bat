@@ -27,25 +27,77 @@ if errorlevel 1 (
 echo       pip OK
 echo.
 
-echo [3/4] Instalando requerimientos...
+echo [3/4] Instalando paquetes uno por uno...
 echo.
 
-echo       Verificando version de pip...
-python -m pip install --version
+set PAQUETE_FALLIDO=
 
-echo.
-echo       - Instalando paquetes (puede tardar varios minutos en Python 3.14)...
-echo       - Presiona Ctrl+C si tarda mas de 10 minutos
-echo.
-
-pip install streamlit pandas openpyxl supabase streamlit-extras --verbose
+echo       Instalando streamlit...
+pip install streamlit
 if errorlevel 1 (
-    echo ERROR: Fallo la instalacion de paquetes
-    pause
-    exit /b 1
+    echo       ERROR: Fallo streamlit
+    set PAQUETE_FALLIDO=streamlit
+    goto :verificar
 )
+echo       streamlit OK
+
+echo       Instalando pandas...
+pip install pandas
+if errorlevel 1 (
+    echo       ERROR: Fallo pandas
+    set PAQUETE_FALLIDO=pandas
+    goto :verificar
+)
+echo       pandas OK
+
+echo       Instalando openpyxl...
+pip install openpyxl
+if errorlevel 1 (
+    echo       ERROR: Fallo openpyxl
+    set PAQUETE_FALLIDO=openpyxl
+    goto :verificar
+)
+echo       openpyxl OK
+
+echo       Instalando supabase...
+pip install supabase
+if errorlevel 1 (
+    echo       ERROR: Fallo supabase
+    set PAQUETE_FALLIDO=supabase
+    goto :verificar
+)
+echo       supabase OK
+
+echo       Instalando streamlit-extras...
+pip install streamlit-extras
+if errorlevel 1 (
+    echo       ERROR: Fallo streamlit-extras
+    set PAQUETE_FALLIDO=streamlit-extras
+    goto :verificar
+)
+echo       streamlit-extras OK
+
+goto :fin
+
+:verificar
 echo.
-echo [4/4] Verificando instalacion...
+echo =========================================
+echo   ERROR EN INSTALACION
+echo =========================================
+echo.
+echo Paquete que fallo: %PAQUETE_FALLIDO%
+echo.
+echo Soluciones posibles:
+echo 1. Usa Python 3.11 o 3.12 en vez de 3.14
+echo 2. Verifica tu conexion a internet
+echo 3. Intenta: pip install %PAQUETE_FALLIDO% --only-binary :all:
+echo.
+pause
+exit /b 1
+
+:fin
+echo.
+echo [4/4] Verificando instalacion completa...
 echo.
 
 pip show streamlit >nul 2>&1
