@@ -314,7 +314,7 @@ def process_extraction_streamlit(
     # Convertir a DataFrame
     df = pd.DataFrame(all_data)
     
-    # Agregar columnas derivadas
+    # Renombrar columnas a español y agregar columnas derivadas
     def get_fundo(eq):
         fundo_map = {
             1: "DA", 2: "DA", 3: "DA", 4: "DA", 5: "DA", 6: "DA", 7: "DA", 9: "DA",
@@ -323,11 +323,19 @@ def process_extraction_streamlit(
         }
         return fundo_map.get(eq, "")
     
+    # Renombrar columnas existentes (no crear nuevas)
+    df = df.rename(columns={
+        'fecha': 'Fecha',
+        'horas': 'Horas',
+        'm3_planilla': 'M3',
+        'con_fert': 'Con Fertilizante'
+    })
+    
+    # Agregar columnas derivadas
     df['Fundo'] = df['equipo'].apply(get_fundo)
     df['Nombre Sector'] = "E" + df['equipo'].astype(str) + "S" + df['sector'].astype(str)
-    df['Fecha'] = df['fecha']
-    df['Horas'] = df['horas']
-    df['M3'] = df['m3_planilla'].fillna(0)
-    df['Con Fertilizante'] = df['con_fert']
+    
+    # Convertir M3 a número (evitar NaN)
+    df['M3'] = pd.to_numeric(df['M3'], errors='coerce').fillna(0)
     
     return df

@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from modules.extract_logic import process_extraction_streamlit
 from modules.supabase_sync import sync_to_supabase
+from modules.schedule_logic import apply_excel_styles
 
 
 def show():
@@ -94,9 +95,10 @@ def show():
         st.markdown("---")
         st.subheader(f"📊 Resultados ({len(df)} registros)")
         
-        # Preview
+        # Preview con columnas correctas
+        preview_cols = ['equipo', 'sector', 'Fecha', 'Horas', 'M3', 'Con Fertilizante', 'Fundo', 'Nombre Sector']
         st.dataframe(
-            df[['Fecha', 'Fundo', 'Nombre Sector', 'equipo', 'sector', 'horas', 'M3', 'Con Fertilizante']],
+            df[preview_cols],
             use_container_width=True,
             height=300
         )
@@ -106,7 +108,7 @@ def show():
         with col_a:
             st.metric("Total Riegos", len(df))
         with col_b:
-            total_hrs = df['horas'].sum()
+            total_hrs = df['Horas'].sum()
             st.metric("Horas Totales", f"{total_hrs:.1f}")
         with col_c:
             total_m3 = df['M3'].sum()
@@ -131,10 +133,10 @@ def show():
                         st.error(f"❌ Error: {result['errors']}")
         
         with col_dl:
-            # Convertir a Excel para download
+            # Convertir a Excel para download con estilos
             buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='Riegos Extraidos')
+            apply_excel_styles(df, buffer)
+            buffer.seek(0)
             
             st.download_button(
                 label="📥 Descargar Excel",

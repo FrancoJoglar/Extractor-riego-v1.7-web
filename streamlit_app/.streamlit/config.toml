@@ -1,4 +1,4 @@
-# Streamlit config
+# Streamlit config - Siracusa Style Theme
 [server]
 port = 8501
 headless = false
@@ -11,14 +11,10 @@ serverAddress = "localhost"
 showSidebarNavigation = false
 
 [theme]
-primaryColor = "#2E7D32"
-backgroundColor = "#F1F8E9"
-secondaryBackgroundColor = "#E8F5E9"
-textColor = "#1B5E20"
-font = "sans serif"
+primaryColor = "#22c55e"
+backgroundColor = "#f8fafc"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#292524"
 
 [runner]
 magicEnabled = true
-
-[analytics]
-enabled = false

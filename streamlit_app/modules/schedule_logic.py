@@ -190,51 +190,59 @@ def generate_schedule(fecha: str, log_callback=print) -> pd.DataFrame:
     return df
 
 
-def apply_excel_styles(df: pd.DataFrame, output_path: str):
+def apply_excel_styles(df: pd.DataFrame, output):
     """
     Aplica estilos corporativos al Excel exportado.
     
     Args:
         df: DataFrame con los datos
-        output_path: Ruta del archivo Excel de salida
+        output: Ruta del archivo Excel de salida (str) o BytesIO buffer
     """
     import openpyxl
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
+    import io
+    
+    is_buffer = isinstance(output, io.BytesIO)
     
     # Guardar DataFrame a Excel
-    df.to_excel(output_path, index=False)
-    
-    wb = openpyxl.load_workbook(output_path)
+    if is_buffer:
+        # Guardar a bytes primero, luego cargar
+        df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
+        wb = openpyxl.load_workbook(output)
+    else:
+        df.to_excel(output, index=False)
+        wb = openpyxl.load_workbook(output)
     ws = wb.active
     
     # ============================================
     # 1. CONFIGURACIÓN DE COLORES Y ESTILOS
     # ============================================
     
-    # Encabezado: Azul #0066CC
-    AZUL_ENCABEZADO = "0066CC"
+    # Encabezado: Azul #0066CC (formato ARGB)
+    AZUL_ENCABEZADO = "FF0066CC"
     header_fill = PatternFill(start_color=AZUL_ENCABEZADO, end_color=AZUL_ENCABEZADO, fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF", size=11)
     
-    # Paleta SIMPLE: solo 2 tonos de azul claro alternados
-    AZUL_1 = "B4D7FF"  # Azul claro
-    AZUL_2 = "D4E5F7"  # Azul muy claro
+    # Paleta 2 tonos azul por equipo (alternados, formato ARGB con alpha FF)
+    AZUL_1 = "FF5B9BD5"  # Azul corporativo
+    AZUL_2 = "FFBDD7EE"  # Azul claro
     COLORES_EQUIPOS = [AZUL_1, AZUL_2]
     
     # Mapear equipos a colores (alternar)
-    # Nota: la columna puede venir como 'equipo_nombre' o 'Equipo' según el origen
-    equipos_col = 'Equipo' if 'Equipo' in df.columns else ('equipo_nombre' if 'equipo_nombre' in df.columns else None)
+    # La columna puede ser 'equipo', 'Equipo', o 'equipo_nombre'
+    equipos_col = 'equipo' if 'equipo' in df.columns else ('Equipo' if 'Equipo' in df.columns else ('equipo_nombre' if 'equipo_nombre' in df.columns else None))
     equipos_unicos = df[equipos_col].unique() if equipos_col else []
     color_por_equipo = {eq: COLORES_EQUIPOS[i % 2] for i, eq in enumerate(sorted(equipos_unicos))}
     
     # Fuentes
     font_dato = Font(name="Calibri", size=11, bold=False)
     font_importante = Font(name="Calibri", size=14, bold=True)  # Sector, M3
-    font_hora = Font(name="Calibri", size=12, bold=True, color="FF6600")  # Hora Inicio NARANJO
+    font_hora = Font(name="Calibri", size=12, bold=True, color="FFFF6600")  # Hora Inicio NARANJO (ARGB)
     
     # Bordes suaves
-    border_side = Side(color="D3D3D3", style='thin')
+    border_side = Side(color="FFD3D3D3", style='thin')
     border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
     
     # ============================================
@@ -242,11 +250,11 @@ def apply_excel_styles(df: pd.DataFrame, output_path: str):
     # ============================================
     columnas = {cell.value: idx for idx, cell in enumerate(ws[1])}
     
-    # Columnas importantes
-    col_sector = columnas.get('Sector', columnas.get('sector_nombre', None))
-    col_m3 = columnas.get('M3 Estimados', columnas.get('m3_estimados', columnas.get('m3', None)))
-    col_hora = columnas.get('Hora Inicio', None)
-    col_equipo = columnas.get('Equipo', columnas.get('equipo_nombre', None))
+    # Columnas importantes - buscar múltiples variantes de nombres
+    col_sector = columnas.get('Nombre Sector', columnas.get('Sector', columnas.get('sector', None)))
+    col_m3 = columnas.get('M3', columnas.get('m3', None))
+    col_hora = columnas.get('Hora Inicio', columnas.get('hora_inicio', None))
+    col_equipo = columnas.get('Equipo', columnas.get('equipo', columnas.get('equipo_nombre', None)))
     
     # NOTA: Las columnas ya vienen filtradas desde la página (Fecha, Equipo, Sector, etc.)
     # No se ocultan columnas aquí
@@ -310,4 +318,4 @@ def apply_excel_styles(df: pd.DataFrame, output_path: str):
         if col_letter in ws.column_dimensions:
             ws.column_dimensions[col_letter].width = width
     
-    wb.save(output_path)
+    wb.save(output)
