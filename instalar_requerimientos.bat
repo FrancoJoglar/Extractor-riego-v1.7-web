@@ -30,17 +30,10 @@ echo.
 echo [3/4] Instalando requerimientos...
 echo.
 
-echo       - Requerimientos principales...
-pip install -r "%~dp0requirements.txt" --quiet
+echo       - Esperando que Streamlit este disponible...
+pip install streamlit pandas openpyxl supabase streamlit-extras --quiet
 if errorlevel 1 (
-    echo ERROR: Fallo la instalacion de requirements.txt
-    pause
-    exit /b 1
-)
-echo       - Requerimientos de streamlit_app...
-pip install -r "%~dp0streamlit_app\requirements.txt" --quiet
-if errorlevel 1 (
-    echo ERROR: Fallo la instalacion de streamlit_app\requirements.txt
+    echo ERROR: Fallo la instalacion de paquetes
     pause
     exit /b 1
 )
